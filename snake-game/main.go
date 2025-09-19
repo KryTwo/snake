@@ -98,6 +98,7 @@ func (b *Board) ShowBoard() {
 // Спавн еды в случайном месте
 func (b *Board) SpawnFood() {
 	var x, y int
+
 	var food Point
 
 	for {
