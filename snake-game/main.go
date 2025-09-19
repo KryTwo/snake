@@ -34,6 +34,33 @@ func (sn *Snake) NewDirection() {
 }
 
 // Движение змейки (для теста в случайном направлении)
+func (sn *Snake) MoveManually(dir string) {
+	var newHead Point
+	head := sn.body[0]
+
+	sn.direction = dir
+
+	switch sn.direction {
+	case "left":
+		newHead = Point{X: head.X - 1, Y: head.Y}
+	case "right":
+		newHead = Point{X: head.X + 1, Y: head.Y}
+	case "up":
+		newHead = Point{X: head.X, Y: head.Y - 1}
+	case "down":
+		newHead = Point{X: head.X, Y: head.Y + 1}
+	}
+
+	newBody := []Point{newHead}
+	newBody = append(newBody, sn.body...)
+	if !sn.growing {
+		newBody = newBody[:len(newBody)-1]
+	}
+	sn.growing = false
+	sn.body = newBody
+}
+
+// Движение змейки (для теста в случайном направлении)
 func (sn *Snake) Move() {
 	var newHead Point
 	head := sn.body[0]
@@ -78,17 +105,22 @@ func NewBoard(width, height int, snake *Snake) *Board {
 
 // Отрисовка поля
 func (b *Board) ShowBoard() {
-	var point Point
-	for y := 0; y <= b.Height; y++ {
-		point.Y = y
-		for x := 0; x <= b.Width; x++ {
-			point.X = x
-			if b.Snake.Contains(point) {
-				fmt.Print("#")
-			} else if b.ContainsFood(point) {
-				fmt.Print("$")
+
+	for y := 0; y < b.Height; y++ {
+		for x := 0; x < b.Width; x++ {
+			p := Point{X: x, Y: y}
+			if b.Snake.Contains(p) {
+				//змейка
+				if p == b.Snake.body[0] {
+					fmt.Print("^")
+				} else {
+					fmt.Print("#")
+				}
+
+			} else if b.ContainsFood(p) {
+				fmt.Print("$") //еда
 			} else {
-				fmt.Print(".")
+				fmt.Print(".") //пустое поле
 			}
 		}
 		fmt.Println()
@@ -132,6 +164,10 @@ func (b *Board) ContainsFood(p Point) bool {
 	return false
 }
 
+func Tick() {
+	time.Sleep(0500 * time.Millisecond)
+}
+
 func main() {
 	// rand.New(rand.NewSource(time.Now().UnixNano()))
 	point := Point{X: 5, Y: 5}
@@ -146,12 +182,54 @@ func main() {
 
 	fmt.Printf("еда: x - %v, y - %v\n", board.Food.X, board.Food.Y)
 	//snake.Grow()
-	for {
-		time.Sleep(time.Millisecond * 500)
-		snake.Move()
-		fmt.Println(snake.body)
-		board.ShowBoard()
-	}
+
+	time.Sleep(time.Millisecond * 500)
+	snake.Grow()
+
+	snake.MoveManually("left")
+	board.ShowBoard()
+	Tick()
+	snake.Grow()
+	snake.MoveManually("left")
+	board.ShowBoard()
+	Tick()
+	snake.Grow()
+	snake.MoveManually("left")
+	board.ShowBoard()
+	Tick()
+	snake.Grow()
+	snake.MoveManually("left")
+	board.ShowBoard()
+	Tick()
+	snake.Grow()
+	snake.MoveManually("up")
+	board.ShowBoard()
+	Tick()
+	snake.Grow()
+	snake.MoveManually("up")
+	board.ShowBoard()
+	Tick()
+	snake.MoveManually("up")
+	board.ShowBoard()
+	Tick()
+
+	snake.MoveManually("right")
+	board.ShowBoard()
+	Tick()
+	snake.MoveManually("right")
+	board.ShowBoard()
+	Tick()
+	snake.MoveManually("right")
+	board.ShowBoard()
+	Tick()
+	snake.MoveManually("right")
+	board.ShowBoard()
+	Tick()
+	snake.MoveManually("right")
+	board.ShowBoard()
+	Tick()
+	fmt.Println(snake.body)
+	board.ShowBoard()
 
 	//fmt.Println(snake.body)
 }
@@ -161,4 +239,6 @@ func main() {
 // Проверка границ поля
 // Проверка самопересечения
 // Проверка реверса движения
-// отрисовка поля
+// 3/4 отрисовка поля
+// ...
+// чтение с клавиатуры
