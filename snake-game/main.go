@@ -164,13 +164,55 @@ func (b *Board) ContainsFood(p Point) bool {
 	return false
 }
 
+// time.sleep
 func Tick() {
-	time.Sleep(0500 * time.Millisecond)
+	time.Sleep(900 * time.Millisecond)
+}
+
+// func (b *Board) isValidMove() bool {
+// 	return true
+// }
+
+func (sn *Snake) NextHead() Point {
+	//sn.NewDirection()
+	head := sn.body[0]
+
+	switch sn.direction {
+	case "left":
+		return Point{X: head.X - 1, Y: head.Y}
+	case "right":
+		return Point{X: head.X + 1, Y: head.Y}
+	case "up":
+		return Point{X: head.X, Y: head.Y - 1}
+	default:
+		return Point{X: head.X, Y: head.Y + 1}
+	}
+}
+
+func (b *Board) IsOutOfBounds(newHead Point) bool {
+	fmt.Printf("новая голова %v\n", newHead)
+	return newHead.X < 0 || newHead.X >= b.Width || newHead.Y < 0 || newHead.Y >= b.Height
+}
+
+func (b *Board) CollidesWithItself(newHead Point) bool {
+	return false
+}
+
+func (b *Board) Update() bool {
+
+	newHead := b.Snake.NextHead()
+
+	if b.IsOutOfBounds(newHead) {
+		fmt.Println("Игра окончена, конец карты!")
+		return false
+	}
+	return true
+
 }
 
 func main() {
 	// rand.New(rand.NewSource(time.Now().UnixNano()))
-	point := Point{X: 5, Y: 5}
+	point := Point{X: 2, Y: 2}
 	fmt.Printf("Точка старта: %+v\n", point)
 
 	snake := Snake{
@@ -180,65 +222,29 @@ func main() {
 
 	board := NewBoard(10, 10, &snake)
 
-	fmt.Printf("еда: x - %v, y - %v\n", board.Food.X, board.Food.Y)
+	//fmt.Printf("еда: x - %v, y - %v\n", board.Food.X, board.Food.Y)
 	//snake.Grow()
 
-	time.Sleep(time.Millisecond * 500)
-	snake.Grow()
+	//time.Sleep(time.Millisecond * 500)
+	Tick()
+	//snake.NewDirection()
 
-	snake.MoveManually("left")
-	board.ShowBoard()
-	Tick()
-	snake.Grow()
-	snake.MoveManually("left")
-	board.ShowBoard()
-	Tick()
-	snake.Grow()
-	snake.MoveManually("left")
-	board.ShowBoard()
-	Tick()
-	snake.Grow()
-	snake.MoveManually("left")
-	board.ShowBoard()
-	Tick()
-	snake.Grow()
-	snake.MoveManually("up")
-	board.ShowBoard()
-	Tick()
-	snake.Grow()
-	snake.MoveManually("up")
-	board.ShowBoard()
-	Tick()
-	snake.MoveManually("up")
-	board.ShowBoard()
-	Tick()
+	snake.direction = "left"
 
-	snake.MoveManually("right")
-	board.ShowBoard()
-	Tick()
-	snake.MoveManually("right")
-	board.ShowBoard()
-	Tick()
-	snake.MoveManually("right")
-	board.ShowBoard()
-	Tick()
-	snake.MoveManually("right")
-	board.ShowBoard()
-	Tick()
-	snake.MoveManually("right")
-	board.ShowBoard()
-	Tick()
-	fmt.Println(snake.body)
-	board.ShowBoard()
+	for board.Update() {
+		snake.MoveManually(snake.direction)
+		board.ShowBoard()
+		Tick()
+	}
 
 	//fmt.Println(snake.body)
 }
 
 // Цикл на автоматическое перемещение
 // Смена направления перемещения
-// Проверка границ поля
+// 1/2 Проверка границ поля
 // Проверка самопересечения
-// Проверка реверса движения
+// Проверка реверса движения (для змейки с телом)
 // 3/4 отрисовка поля
 // ...
 // чтение с клавиатуры
