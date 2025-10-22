@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"slices"
 	"time"
 )
 
@@ -166,7 +167,7 @@ func (b *Board) ContainsFood(p Point) bool {
 
 // time.sleep
 func Tick() {
-	time.Sleep(900 * time.Millisecond)
+	time.Sleep(2000 * time.Millisecond)
 }
 
 // func (b *Board) isValidMove() bool {
@@ -195,7 +196,7 @@ func (b *Board) IsOutOfBounds(newHead Point) bool {
 }
 
 func (b *Board) CollidesWithItself(newHead Point) bool {
-	return false
+	return slices.Contains(b.Snake.body, newHead)
 }
 
 func (b *Board) Update() bool {
@@ -206,30 +207,38 @@ func (b *Board) Update() bool {
 		fmt.Println("Игра окончена, конец карты!")
 		return false
 	}
-	return true
 
+	if b.CollidesWithItself(newHead) {
+		fmt.Println("Ah, the ouroboros — and suddenly me?!")
+		return false
+	}
+
+	return true
 }
 
 func main() {
 	// rand.New(rand.NewSource(time.Now().UnixNano()))
-	point := Point{X: 2, Y: 2}
-	fmt.Printf("Точка старта: %+v\n", point)
+	points := []Point{
+		{5, 5}, {4, 5}, {3, 5}, {3, 4}, {4, 4},
+	}
+	fmt.Printf("Точка старта: %+v\n", points[0])
 
 	snake := Snake{
-		body:    []Point{point},
+		body:    points,
 		growing: false,
 	}
 
 	board := NewBoard(10, 10, &snake)
+	board.ShowBoard()
+	Tick()
 
 	//fmt.Printf("еда: x - %v, y - %v\n", board.Food.X, board.Food.Y)
 	//snake.Grow()
 
 	//time.Sleep(time.Millisecond * 500)
-	Tick()
 	//snake.NewDirection()
 
-	snake.direction = "left"
+	snake.direction = "down"
 
 	for board.Update() {
 		snake.MoveManually(snake.direction)
@@ -240,10 +249,11 @@ func main() {
 	//fmt.Println(snake.body)
 }
 
+// Eat & grow
 // Цикл на автоматическое перемещение
 // Смена направления перемещения
 // 1/2 Проверка границ поля
-// Проверка самопересечения
+// (Done) Проверка самопересечения
 // Проверка реверса движения (для змейки с телом)
 // 3/4 отрисовка поля
 // ...
