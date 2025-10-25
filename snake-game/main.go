@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"slices"
 	"time"
+
+	"github.com/eiannone/keyboard"
 )
 
 type Point struct {
@@ -59,6 +62,7 @@ func (sn *Snake) MoveManually(dir string) {
 	}
 	sn.growing = false
 	sn.body = newBody
+
 }
 
 // Движение змейки (для теста в случайном направлении)
@@ -100,7 +104,8 @@ func NewBoard(width, height int, snake *Snake) *Board {
 		Height: height,
 		Snake:  snake,
 	}
-	board.SpawnFood()
+	board.PlaceFood(5, 8)
+	//board.SpawnFood()
 	return board
 }
 
@@ -147,6 +152,21 @@ func (b *Board) SpawnFood() {
 	b.Food = food
 }
 
+// Спавн еды вручную
+func (b *Board) PlaceFood(x, y int) {
+	var food Point
+
+	for {
+		food = Point{X: x, Y: y}
+
+		if !b.Snake.Contains(food) {
+			break
+		}
+	}
+
+	b.Food = food
+}
+
 // Проверка - есть ли в Point часть змейки
 func (sn *Snake) Contains(p Point) bool {
 	for _, part := range sn.body {
@@ -167,7 +187,7 @@ func (b *Board) ContainsFood(p Point) bool {
 
 // time.sleep
 func Tick() {
-	time.Sleep(2000 * time.Millisecond)
+	time.Sleep(1500 * time.Millisecond)
 }
 
 // func (b *Board) isValidMove() bool {
@@ -191,7 +211,7 @@ func (sn *Snake) NextHead() Point {
 }
 
 func (b *Board) IsOutOfBounds(newHead Point) bool {
-	fmt.Printf("новая голова %v\n", newHead)
+	fmt.Printf("newHead: %v\n", newHead)
 	return newHead.X < 0 || newHead.X >= b.Width || newHead.Y < 0 || newHead.Y >= b.Height
 }
 
@@ -199,12 +219,16 @@ func (b *Board) CollidesWithItself(newHead Point) bool {
 	return slices.Contains(b.Snake.body, newHead)
 }
 
+func (b *Board) WillEat(newHead Point) bool {
+	return b.Food.X == newHead.X && b.Food.Y == newHead.Y
+}
+
 func (b *Board) Update() bool {
 
 	newHead := b.Snake.NextHead()
 
 	if b.IsOutOfBounds(newHead) {
-		fmt.Println("Игра окончена, конец карты!")
+		fmt.Println("You can't escape!")
 		return false
 	}
 
@@ -213,15 +237,80 @@ func (b *Board) Update() bool {
 		return false
 	}
 
+	if b.WillEat(newHead) {
+		b.Snake.growing = true
+		b.SpawnFood()
+	}
+
 	return true
 }
 
+// Получение rune и key нажатой клавиши
+func getKey(ch chan int) {
+	if err := keyboard.Open(); err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		_ = keyboard.Close()
+	}()
+
+	keysEvents, err := keyboard.GetKeys(10)
+	if err != nil {
+		panic(err)
+	}
+
+	for {
+		event := <-keysEvents
+		if event.Err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading key: %v\n", event.Err)
+			continue
+		}
+		fmt.Printf("rune %q, ", event.Rune)
+
+		if event.Key == keyboard.KeyEsc {
+			return
+		}
+		ch <- int(event.Key)
+	}
+}
+
+func directionForKey(ch chan int, ch2 chan string) {
+	for {
+		key := <-ch
+		if key != 0 {
+			switch key {
+			case 65517:
+				ch2 <- "up"
+				fmt.Println("up 65517")
+			case 65515:
+				ch2 <- "left"
+				fmt.Println("left 65515")
+			case 65514:
+				ch2 <- "right"
+				fmt.Println("right 65514")
+			case 65516:
+				ch2 <- "down"
+				fmt.Println("down 65516")
+				// default:
+				// 	key = 0
+			}
+		}
+	}
+}
+
+func (sn *Snake) ChangeDirection(ch2 chan string) {
+	sn.direction = <-ch2
+}
+
 func main() {
-	// rand.New(rand.NewSource(time.Now().UnixNano()))
+	ch := make(chan int)
+	ch2 := make(chan string)
+	chanEndGame := make(chan string)
 	points := []Point{
 		{5, 5}, {4, 5}, {3, 5}, {3, 4}, {4, 4},
 	}
-	fmt.Printf("Точка старта: %+v\n", points[0])
+	fmt.Printf("Start point: %+v\n", points[0])
 
 	snake := Snake{
 		body:    points,
@@ -230,31 +319,34 @@ func main() {
 
 	board := NewBoard(10, 10, &snake)
 	board.ShowBoard()
+
 	Tick()
 
-	//fmt.Printf("еда: x - %v, y - %v\n", board.Food.X, board.Food.Y)
-	//snake.Grow()
+	go func() {
+		for board.Update() {
+			snake.ChangeDirection(ch2)
+			snake.Move()
+			board.ShowBoard()
+			Tick()
 
-	//time.Sleep(time.Millisecond * 500)
-	//snake.NewDirection()
+		}
+		chanEndGame <- "end"
+	}()
 
-	snake.direction = "down"
+	go getKey(ch)
+	go directionForKey(ch, ch2)
 
-	for board.Update() {
-		snake.MoveManually(snake.direction)
-		board.ShowBoard()
-		Tick()
-	}
-
-	//fmt.Println(snake.body)
+	fmt.Println(<-chanEndGame)
 }
 
-// Eat & grow
-// Цикл на автоматическое перемещение
-// Смена направления перемещения
+// 1/2 Eat & grow
+// 1/2 Смена направления перемещения
 // 1/2 Проверка границ поля
 // (Done) Проверка самопересечения
+// (Done) Проверка пересечения границ
 // Проверка реверса движения (для змейки с телом)
 // 3/4 отрисовка поля
 // ...
 // чтение с клавиатуры
+// Цикл на автоматическое перемещение
+// автоматическая игра, до полного заполнения карты
